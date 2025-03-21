@@ -10,7 +10,7 @@ use ratatui::{
     style::{Color, Modifier, Style},
     symbols,
     text::{Line, Span},
-    widgets::{Axis, Block, Borders, Chart, Dataset, List, Paragraph},
+    widgets::{Axis, Block, Borders, BorderType, Chart, Dataset, List, Paragraph},
 };
 use std::{io, thread, time::Duration};
 use sysinfo::{Disks, Networks, System};
@@ -94,9 +94,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .direction(Direction::Vertical)
                 .constraints(
                     [
+                        Constraint::Percentage(30),
                         Constraint::Percentage(20),
-                        Constraint::Percentage(20),
-                        Constraint::Percentage(20),
+                        Constraint::Percentage(10),
                         Constraint::Percentage(20),
                         Constraint::Percentage(20),
                     ]
@@ -105,21 +105,46 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .split(size);
 
             // CPU Information
-            let cpu = sys.global_cpu_usage() ;
-            let cpu_text = vec![Line::from(format!("CPU Usage: {:.2}%", cpu))];
-            let cpu_block =
-                Paragraph::new(cpu_text).block(Block::default().borders(Borders::ALL).title("CPU"));
+            // let cpu = sys.global_cpu_usage();
+            // let cpu_text = vec![Line::from(format!("CPU Usage: {:.2}%", cpu))];
+            // let cpu_block =
+            //     Paragraph::new(cpu_text).block(Block::default().borders(Borders::ALL).title("CPU"));
+            // f.render_widget(cpu_block, chunks[0]);
+
+            // Get per-core CPU usage
+            let cpu_text: Vec<Line> = sys
+                .cpus()
+                .iter()
+                .enumerate()
+                .map(|(i, cpu)| Line::from(format!("Core {}: {:.2}%", i, cpu.cpu_usage())))
+                .collect();
+
+            let cpu_brand = format!(" CPU ({}) Usage ", sys.cpus()[0].brand());
+            let cpu_block = Paragraph::new(cpu_text)
+                .block(Block::default().border_type(BorderType::Rounded).borders(Borders::ALL).title(cpu_brand));
             f.render_widget(cpu_block, chunks[0]);
 
             // Memory Information
             let memory_text: Vec<Line<'_>> = vec![
-                Line::from(format!("Total Memory: {:.2} GB", (sys.total_memory())as f64/(1073741824)as f64)),
-                Line::from(format!("Used Memory: {:.2} GB", (sys.used_memory())as f64/(1073741824)as f64)),
-                Line::from(format!("Total Swap: {:.2} GB", (sys.total_swap())as f64/(1073741824)as f64)),
-                Line::from(format!("Used Swap: {:.2} GB", (sys.used_swap())as f64/(1073741824)as f64)),
+                Line::from(format!(
+                    "Total Memory: {:.2} GB",
+                    (sys.total_memory()) as f64 / (1073741824) as f64
+                )),
+                Line::from(format!(
+                    "Used Memory: {:.2} GB",
+                    (sys.used_memory()) as f64 / (1073741824) as f64
+                )),
+                Line::from(format!(
+                    "Total Swap: {:.2} GB",
+                    (sys.total_swap()) as f64 / (1073741824) as f64
+                )),
+                Line::from(format!(
+                    "Used Swap: {:.2} GB",
+                    (sys.used_swap()) as f64 / (1073741824) as f64
+                )),
             ];
             let memory_block = Paragraph::new(memory_text)
-                .block(Block::default().borders(Borders::ALL).title("Memory"));
+                .block(Block::default().border_type(BorderType::Rounded).borders(Borders::ALL).title(" Memory "));
             f.render_widget(memory_block, chunks[1]);
 
             // Disk Information
@@ -129,13 +154,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     Line::from(format!(
                         "{}: {:.2}/{:.2} GB",
                         disk.name().to_string_lossy(),
-                        disk.available_space()as f64/(1073741824)as f64,
-                        disk.total_space()as f64/(1073741824)as f64
+                        disk.available_space() as f64 / (1073741824) as f64,
+                        disk.total_space() as f64 / (1073741824) as f64
                     ))
                 })
                 .collect();
             let disk_block =
-                List::new(disk_text).block(Block::default().borders(Borders::ALL).title("Disks"));
+                List::new(disk_text).block(Block::default().border_type(BorderType::Rounded).borders(Borders::ALL).title(" Disks "));
             f.render_widget(disk_block, chunks[2]);
 
             // Network Information
@@ -151,7 +176,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 })
                 .collect();
             let network_block = List::new(network_text)
-                .block(Block::default().borders(Borders::ALL).title("Networks"));
+                .block(Block::default().border_type(BorderType::Rounded).borders(Borders::ALL).title(" Networks "));
             f.render_widget(network_block, chunks[3]);
 
             // System Information
@@ -174,7 +199,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 )),
             ];
             let system_block = Paragraph::new(system_text)
-                .block(Block::default().borders(Borders::ALL).title("System"));
+                .block(Block::default().border_type(BorderType::Rounded).borders(Borders::ALL).title(" System "));
             f.render_widget(system_block, chunks[4]);
         })?;
 
